@@ -1,0 +1,6 @@
+* text=auto eol=lf
+# The release tarball contains the sources only; the PKGBUILD that checksums it lives outside.
+packaging/ export-ignore
+.github/ export-ignore
+*.png binary
+*.ttf binary

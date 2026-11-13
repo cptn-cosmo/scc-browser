@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git python pyside6 python-pytest \
+            python-build python-installer python-setuptools python-wheel \
+            appstream desktop-file-utils
+
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Check versions agree
+        run: |
+          py_version=$(sed -nE 's/^version = "([^"]+)"/\1/p' pyproject.toml)
+          mod_version=$(sed -nE 's/^__version__ = "([^"]+)"/\1/p' scc_browser/__init__.py)
+          pkg_version=$(sed -nE 's/^pkgver=(.*)/\1/p' packaging/arch/PKGBUILD)
+          echo "pyproject $py_version, module $mod_version, PKGBUILD $pkg_version"
+          if [ "$py_version" != "$mod_version" ]; then
+            echo "::error::scc_browser/__init__.py ($mod_version) differs from pyproject.toml ($py_version)"
+            exit 1
+          fi
+          if [ "$py_version" != "$pkg_version" ]; then
+            echo "::warning::PKGBUILD pkgver ($pkg_version) differs from pyproject.toml ($py_version)"
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && [ "${GITHUB_REF_NAME#v}" != "$py_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pyproject.toml version $py_version"
+            exit 1
+          fi
+
+      - name: Test
+        run: QT_QPA_PLATFORM=offscreen python -m pytest -v
+
+      - name: Validate desktop file and metainfo
+        run: |
+          desktop-file-validate data/gay.geeks.sccbrowser.desktop
+          appstreamcli validate --no-net data/gay.geeks.sccbrowser.metainfo.xml
+
+      - name: Build wheel
+        run: python -m build --wheel --no-isolation
+
+      - name: Smoke-test the installed app
+        run: |
+          python -m installer --destdir="$PWD/stage" dist/*.whl
+          site=$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+          cd /tmp && PYTHONPATH="$GITHUB_WORKSPACE/stage$site" QT_QPA_PLATFORM=offscreen \
+            python -c 'import scc_browser.window, scc_browser.theme as t; assert (t.ASSETS / "Electrolize-Regular.ttf").is_file()'

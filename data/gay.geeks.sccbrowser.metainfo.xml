@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>gay.geeks.sccbrowser</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SC Character Databank</name>
+  <summary>Browse and install community Star Citizen characters</summary>
+  <description>
+    <p>
+      A native Qt 6 browser for the character submissions on star-citizen-characters.com, styled
+      after Star Citizen's own interface. Search and sort the database like on the website and
+      install a character into the game's CustomCharacters folder with one click.
+    </p>
+    <ul>
+      <li>Search and sort by latest, most liked or most downloaded</li>
+      <li>One-click install and removal of .chf character files</li>
+      <li>Finds Star Citizen in Steam libraries (Proton prefixes), Wine prefixes under ~/Games and ~/.wine</li>
+      <li>Supports the LIVE, PTU, EPTU, TECH-PREVIEW and HOTFIX channels</li>
+      <li>Lists every installed character file, including ones added by hand</li>
+    </ul>
+    <p>Not affiliated with Cloud Imperium Games or star-citizen-characters.com.</p>
+  </description>
+  <launchable type="desktop-id">gay.geeks.sccbrowser.desktop</launchable>
+  <url type="homepage">https://github.com/cptn-cosmo/scc-browser</url>
+  <url type="bugtracker">https://github.com/cptn-cosmo/scc-browser/issues</url>
+  <developer id="gay.geeks">
+    <name>Cosmo</name>
+  </developer>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-info">mild</content_attribute>
+  </content_rating>
+  <provides>
+    <binary>scc-browser</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-11-13"/>
+  </releases>
+</component>

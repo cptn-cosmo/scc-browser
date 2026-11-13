@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SC Character Databank
+GenericName=Star Citizen Character Browser
+Comment=Browse and install Star Citizen characters from star-citizen-characters.com
+Exec=scc-browser
+Icon=gay.geeks.sccbrowser
+Terminal=false
+Categories=Qt;Game;
+Keywords=star citizen;character;chf;customization;
+StartupWMClass=gay.geeks.sccbrowser
