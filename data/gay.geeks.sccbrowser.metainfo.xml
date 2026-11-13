@@ -15,7 +15,7 @@
     <ul>
       <li>Search and sort by latest, most liked or most downloaded</li>
       <li>One-click install and removal of .chf character files</li>
-      <li>Finds Star Citizen in Steam libraries (Proton prefixes), Wine prefixes under ~/Games and ~/.wine</li>
+      <li>Finds Star Citizen in Steam libraries (Proton prefixes), Wine prefixes under ~/Games and ~/.wine, and on Windows drives</li>
       <li>Supports the LIVE, PTU, EPTU, TECH-PREVIEW and HOTFIX channels</li>
       <li>Lists every installed character file, including ones added by hand</li>
     </ul>
@@ -34,6 +34,11 @@
     <binary>scc-browser</binary>
   </provides>
   <releases>
+    <release version="0.1.1" date="2026-11-13">
+      <description>
+        <p>Windows build, and detection of Windows installs including custom library folders from the RSI launcher.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-13"/>
   </releases>
 </component>

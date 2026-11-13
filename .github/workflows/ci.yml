@@ -5,6 +5,8 @@ on:
     branches: ['**']
     tags: ['v*']
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -16,6 +18,7 @@ permissions:
 
 jobs:
   test:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     steps:
@@ -63,3 +66,59 @@ jobs:
           site=$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
           cd /tmp && PYTHONPATH="$GITHUB_WORKSPACE/stage$site" QT_QPA_PLATFORM=offscreen \
             python -c 'import scc_browser.window, scc_browser.theme as t; assert (t.ASSETS / "Electrolize-Regular.ttf").is_file()'
+
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write  # only used to attach the zip to a published release
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 pyinstaller pytest
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -v
+
+      - name: Build
+        run: pyinstaller --noconfirm packaging/windows/scc-browser.spec
+
+      - name: Smoke-test the build
+        shell: pwsh
+        env:
+          SCC_SMOKE_TEST: '1'
+        run: |
+          if (-not (Test-Path dist/scc-browser/_internal/scc_browser/assets/Electrolize-Regular.ttf)) { throw "assets missing" }
+          $p = Start-Process dist/scc-browser/scc-browser.exe -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "scc-browser.exe exited with $($p.ExitCode)" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          $zip = "scc-browser-$v-windows-x64.zip"
+          Compress-Archive -Path dist/scc-browser -DestinationPath $zip
+          "{0}: {1:N1} MiB" -f $zip, ((Get-Item $zip).Length / 1MB)
+          "ZIP=$zip" >> $env:GITHUB_ENV
+
+      - name: Upload build
+        uses: actions/upload-artifact@v5
+        with:
+          name: scc-browser-windows-x64
+          path: ${{ env.ZIP }}
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "$env:ZIP" --clobber

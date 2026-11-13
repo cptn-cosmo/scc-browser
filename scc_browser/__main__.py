@@ -23,10 +23,18 @@ def main() -> int:
     theme.load_fonts()
     app.setFont(theme.font(10))
     app.setStyle("Fusion")
+    if hasattr(app.styleHints(), "setColorScheme"):  # Qt 6.8+: dark window frame on Windows
+        from PySide6.QtCore import Qt
+
+        app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
     app.setStyleSheet(theme.stylesheet())
 
     win = MainWindow()
     win.show()
+    if os.environ.get("SCC_SMOKE_TEST"):  # CI: start up, then quit right away
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(1500, app.quit)
     return app.exec()
 
 

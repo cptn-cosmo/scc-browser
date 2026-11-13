@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,7 +13,10 @@ from urllib.parse import unquote, urlparse
 
 from .gamedirs import GameInstall
 
-DATA_DIR = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "scc-browser"
+if sys.platform == "win32":
+    DATA_DIR = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "scc-browser"
+else:
+    DATA_DIR = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "scc-browser"
 MANIFEST = DATA_DIR / "installed.json"
 
 

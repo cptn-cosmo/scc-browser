@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scc-browser"
-version = "0.1.0"
+version = "0.1.1"
 description = "Browse and install community Star Citizen characters from star-citizen-characters.com"
 readme = "README.md"
 license = "GPL-3.0-or-later"

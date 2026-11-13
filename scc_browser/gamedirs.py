@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import re
+import string
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -162,14 +164,87 @@ def detect_installs() -> list[GameInstall]:
     if (default_wine / "drive_c").is_dir():
         candidates.append((default_wine, "Wine"))
 
-    installs: dict[Path, GameInstall] = {}
+    sc_dirs: list[tuple[Path, str]] = []
     for prefix, source in candidates:
-        for sc in star_citizen_dirs_in_prefix(prefix):
-            for ch in channels_in(sc):
-                key = ch.resolve()
-                installs.setdefault(key, GameInstall(ch, source))
+        sc_dirs += [(sc, source) for sc in star_citizen_dirs_in_prefix(prefix)]
+
+    if sys.platform == "win32":
+        sc_dirs += [(sc, "Windows") for sc in windows_star_citizen_dirs()]
+        sc_dirs += [(sc, "RSI Launcher") for sc in launcher_log_star_citizen_dirs()]
+
+    installs: dict[Path, GameInstall] = {}
+    for sc, source in sc_dirs:
+        for ch in channels_in(sc):
+            installs.setdefault(ch.resolve(), GameInstall(ch, source))
 
     return sort_installs(installs.values())
+
+
+# -- Windows --------------------------------------------------------------
+
+def windows_drives() -> list[Path]:
+    if sys.platform != "win32":
+        return []
+    import ctypes
+
+    mask = ctypes.windll.kernel32.GetLogicalDrives()
+    return [Path(f"{letter}:\\") for i, letter in enumerate(string.ascii_uppercase) if mask >> i & 1]
+
+
+def windows_star_citizen_dirs(drives: list[Path] | None = None) -> list[Path]:
+    """The launcher's default locations (and common variants) on every drive."""
+    found = []
+    for drive in windows_drives() if drives is None else drives:
+        for loc in RSI_LOCATIONS:
+            sc = drive / loc / "StarCitizen"
+            try:
+                if sc.is_dir():
+                    found.append(sc)
+            except OSError:  # e.g. an empty card reader
+                pass
+    return found
+
+
+# Matches "X:\...\StarCitizen" followed by a channel, as the RSI launcher logs it.
+_LOG_PATH_RE = re.compile(
+    r"([A-Za-z]:[\\/][^\"'\r\n<>|*?:]*?[\\/]StarCitizen)[\\/](?:%s)\b" % "|".join(map(re.escape, CHANNELS)),
+    re.IGNORECASE,
+)
+
+
+def star_citizen_dirs_from_log(text: str) -> list[Path]:
+    text = text.replace("\\\\", "\\")  # JSON-escaped backslashes
+    seen: dict[str, None] = {}
+    for m in _LOG_PATH_RE.finditer(text):
+        seen.setdefault(m.group(1).replace("/", "\\"), None)
+    return [Path(p) for p in seen]
+
+
+def launcher_log_star_citizen_dirs(appdata: Path | None = None) -> list[Path]:
+    """Install locations mentioned in the RSI launcher's logs (custom library folders)."""
+    if appdata is None:
+        env = os.environ.get("APPDATA")
+        if not env:
+            return []
+        appdata = Path(env)
+    base = appdata / "rsilauncher"
+    logs = list(base.glob("*.log")) + list(base.glob("logs/*.log"))
+    found: dict[Path, None] = {}
+    for log in logs:
+        try:
+            with open(log, "rb") as fh:
+                fh.seek(0, os.SEEK_END)
+                fh.seek(max(0, fh.tell() - 4 * 1024 * 1024))
+                text = fh.read().decode("utf-8", errors="replace")
+        except OSError:
+            continue
+        for sc in star_citizen_dirs_from_log(text):
+            try:
+                if sc.is_dir():
+                    found.setdefault(sc, None)
+            except OSError:
+                pass
+    return list(found)
 
 
 def sort_installs(installs) -> list[GameInstall]:
