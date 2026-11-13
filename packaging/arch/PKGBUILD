@@ -21,7 +21,7 @@ depends=(
 makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
 checkdepends=('python-pytest')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/releases/download/v${pkgver}/${pkgname}-${pkgver}.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('9fe0e7d19ef621e36471563be6384823b2938c238ae2d3e18fef4fab23c6a63a')
 
 build() {
   cd "${pkgname}-${pkgver}"
